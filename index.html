@@ -66,15 +66,21 @@
         };
 
         function App() {
+            // 計算台北時間 (UTC+8)
+            const getTaipeiDate = () => {
+                const now = new Date();
+                const taipeiTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+                return taipeiTime.toISOString().split('T')[0];
+            };
+
             const [clientId, setClientId] = useState(CLIENTS[0].id);
             const [items, setItems] = useState([{ id: '1', productId: '40g', flavor: FLAVORS['40g'][0], quantity: 250 }]);
-            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [date, setDate] = useState(getTaipeiDate());
             const [randomId] = useState(Math.floor(Math.random() * 1000000).toString().padStart(6, '0'));
 
             const selectedClient = useMemo(() => CLIENTS.find(c => c.id === clientId), [clientId]);
             const quoteNo = useMemo(() => date.replace(/-/g, '') + "-" + randomId, [date, randomId]);
 
-            // 核心功能：點擊列印時強制修改檔名
             const handlePrint = () => {
                 const d = date.replace(/-/g, '');
                 const clientName = selectedClient ? selectedClient.name : "客戶";
@@ -177,6 +183,7 @@
                         </div>
                     </div>
 
+                    {/* 列印預覽區 */}
                     <div className="hidden print:block bg-white p-12 text-black">
                         <div className="flex justify-between items-start mb-12">
                             <div>
@@ -189,7 +196,7 @@
                             </div>
                         </div>
                         <div className="h-px bg-black mb-8" />
-                        <div className="grid grid-cols-2 gap-16 mb-16">
+                        <div className="grid grid-cols-2 gap-16 mb-12">
                             <div className="text-[13px]">
                                 <h3 className="font-black border-b border-black pb-1 mb-3">客戶資訊 CLIENT</h3>
                                 <p><b>名稱:</b> {selectedClient.name}</p>
@@ -201,8 +208,10 @@
                                 <p><b>公司:</b> {SUPPLIER.name}</p>
                                 <p><b>電話:</b> {SUPPLIER.tel}</p>
                                 <p><b>統編:</b> {SUPPLIER.id}</p>
+                                <p><b>地址:</b> {SUPPLIER.addr}</p>
                             </div>
                         </div>
+
                         <table className="w-full text-left border-collapse mb-12">
                             <thead>
                                 <tr className="bg-black text-white">
@@ -235,13 +244,26 @@
                                 })}
                             </tbody>
                         </table>
-                        <div className="flex justify-end mb-24">
-                            <div className="w-64 space-y-2 text-sm">
+
+                        <div className="grid grid-cols-2 gap-16 mb-24">
+                            {/* 匯款資訊區 */}
+                            <div className="bg-gray-50 p-6 rounded-2xl">
+                                <h4 className="text-[11px] font-black uppercase tracking-widest border-b border-gray-200 pb-2 mb-4">匯款資訊 PAYMENT INFO</h4>
+                                <div className="space-y-2 text-[12px]">
+                                    <div className="flex justify-between"><span className="text-gray-400">銀行:</span><span className="font-bold">{SUPPLIER.bank}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">分行:</span><span className="font-bold">{SUPPLIER.branch}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">帳號:</span><span className="font-bold font-mono">{SUPPLIER.account}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">戶名:</span><span className="font-bold">{SUPPLIER.name}</span></div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 text-sm">
                                 <div className="flex justify-between"><span>小計</span><span>NT$ {(subtotal - tax).toLocaleString()}</span></div>
                                 <div className="flex justify-between"><span>稅金 (5%)</span><span>NT$ {tax.toLocaleString()}</span></div>
                                 <div className="pt-2 border-t-2 border-black flex justify-between font-black"><span>總計</span><span className="text-xl">NT$ {total.toLocaleString()}</span></div>
                             </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-16 text-center">
                             <div><div className="h-px bg-black mb-2" /><p className="text-[10px] font-bold text-gray-400">客戶簽章</p></div>
                             <div><div className="h-px bg-black mb-2" /><p className="text-[10px] font-bold text-gray-400">芮斯特簽章</p></div>
