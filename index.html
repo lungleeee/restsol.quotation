@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>芮斯特報價單生成系統 - Restsol Quotation System</title>
+    <title>芮斯特報價系統 - Restsol Quotation System</title>
     <!-- Tailwind CSS 3 CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM CDN -->
@@ -19,23 +19,36 @@
         @media print {
             .no-print { display: none !important; }
             body { background-color: white !important; -webkit-print-color-adjust: exact; }
-            @page { margin: 0; size: auto; }
+            @page { margin: 20mm; size: auto; }
             .print-area { display: block !important; }
         }
         .whitespace-nowrap { white-space: nowrap; }
     </style>
 </head>
-<body class="bg-[#0a0a0a] text-white min-h-screen">
+<body class="bg-[#F8F9FA] text-[#1A1A1A]">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useMemo, useEffect } = React;
+        const { Plus, Trash2, Printer, FileText, Building2, ChevronDown, Download } = lucide;
 
-        // --- Data Definitions ---
-        const CLIENTS = {
-            'cube': { name: "三次方企業社", address: "台中市西屯區福雅路476-2號", phone: "0912-345678", taxId: "90456789" },
-            'strong': { name: "史狀沙斯企業社", address: "台北市大安區忠孝東路四段1號", phone: "02-2771-2345", taxId: "88776655" }
+        // --- Constants ---
+        const SUPPLIER = {
+            name: "芮斯特有限公司",
+            rep: "李福龍",
+            tel: "06-2423086",
+            email: "lungfree0330@gmail.com",
+            id: "90151231",
+            addr: "台南市永康區中華路988號10F-1",
+            bank: "台新銀行",
+            branch: "永康分行",
+            account: "2087-01-0000670-7"
         };
+
+        const CLIENTS = [
+            { id: "triple", name: "三次方企業社", tel: "05-5850189", taxId: "72404190", addr: "雲林縣莿桐鄉大美村大美23-6號(彰輝不鏽鋼旁邊)", contact: "三次方企業社" },
+            { id: "strong", name: "史狀沙斯企業社", tel: "05-5850189", taxId: "72404190", addr: "雲林縣莿桐鄉大美村大美23-6號(彰輝不鏽鋼旁邊)", contact: "史狀沙斯企業社" }
+        ];
 
         const PRODUCTS = [
             { id: '40g', name: "Restsol Protein Vegan 睿獸大豆分離蛋白 40g", spec: "單包入(250一箱)", basePrice: 29 },
@@ -44,147 +57,183 @@
         ];
 
         const FLAVORS = {
-            '40g': ["經典原味", "濃郁可可", "靜岡抹茶", "宇治焙茶"],
-            '1kg': ["經典原味", "濃郁可可", "靜岡抹茶", "宇治焙茶"],
-            'cube': ["黑巧克力", "海鹽焦糖"]
+            '40g': ["焙茶", "芝麻", "奶奶茶", "無加糖豆豆漿", "靜岡抹抹茶", "紅豆豆", "醇濃可可", "紅茶豆豆漿"],
+            '1kg': ["焙茶", "芝麻", "奶奶茶", "無加糖豆豆漿", "靜岡抹抹茶", "紅豆豆", "醇濃可可", "紅茶豆豆漿"],
+            'cube': ["焙茶HOJI", "芝麻SEASAME", "濃可可CHOC"]
         };
 
         const calculateItemPrice = (clientId, productId, flavor) => {
             const product = PRODUCTS.find(p => p.id === productId);
+            if (!product) return 0;
             let price = product.basePrice;
-            if (productId === '40g') {
-                if (flavor === '靜岡抹茶') price += (clientId === 'cube' ? 3 : 2);
-                if (flavor === '宇治焙茶') price += 5;
-            } else if (productId === '1kg') {
-                if (flavor === '靜岡抹茶') price += (clientId === 'cube' ? 30 : 20);
-                if (flavor === '宇治焙茶') price += (clientId === 'cube' ? 50 : 40);
+
+            if (clientId === 'triple') {
+                if (productId === '40g') {
+                    if (flavor.includes('抹茶')) price += 3;
+                    if (flavor.includes('焙茶')) price += 5;
+                } else if (productId === '1kg') {
+                    if (flavor.includes('抹茶')) price += 30;
+                    if (flavor.includes('焙茶')) price += 50;
+                }
+            } else if (clientId === 'strong') {
+                if (productId === '40g') {
+                    if (flavor.includes('抹茶')) price += 2;
+                    if (flavor.includes('焙茶')) price += 5;
+                } else if (productId === '1kg') {
+                    if (flavor.includes('抹茶')) price += 20;
+                    if (flavor.includes('焙茶')) price += 40;
+                }
             }
             return price;
         };
 
-        // --- Components ---
+        // --- Main App ---
         function App() {
-            const [clientId, setClientId] = useState('cube');
-            const [items, setItems] = useState([{ id: '1', productId: '40g', flavor: '經典原味', quantity: 250 }]);
-            const [quotationId] = useState(`QT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`);
-            const [date] = useState(new Date().toLocaleDateString('zh-TW'));
+            const [clientId, setClientId] = useState(CLIENTS[0].id);
+            const [items, setItems] = useState([{ id: '1', productId: '40g', flavor: FLAVORS['40g'][0], quantity: 250 }]);
+            const [quoteNo, setQuoteNo] = useState("");
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
+            useEffect(() => {
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+                const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+                setQuoteNo(`${dateStr}-${random}`);
+            }, []);
+
+            const selectedClient = useMemo(() => CLIENTS.find(c => c.id === clientId), [clientId]);
             const total = useMemo(() => items.reduce((sum, item) => sum + (calculateItemPrice(clientId, item.productId, item.flavor) * item.quantity), 0), [items, clientId]);
             const tax = Math.round(total / 1.05 * 0.05);
             const subtotal = total - tax;
 
-            const handlePrint = () => window.print();
+            const updateItem = (id, updates) => {
+                setItems(items.map(item => {
+                    if (item.id === id) {
+                        const newItem = { ...item, ...updates };
+                        if (updates.productId && updates.productId !== item.productId) {
+                            newItem.flavor = FLAVORS[updates.productId][0];
+                            if (updates.productId === '40g') newItem.quantity = 250;
+                            if (updates.productId === '1kg') newItem.quantity = 15;
+                            if (updates.productId === 'cube') newItem.quantity = 40;
+                        }
+                        return newItem;
+                    }
+                    return item;
+                }));
+            };
 
             return (
-                <div className="max-w-6xl mx-auto p-4 md:p-8">
-                    {/* Edit View (Hidden on Print) */}
-                    <div className="no-print grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
-                            <header className="flex justify-between items-center bg-white/5 p-6 rounded-3xl border border-white/10">
-                                <div>
-                                    <h1 class="text-2xl font-black tracking-tighter">RESTSOL <span class="text-white/40">SYSTEM</span></h1>
-                                    <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Quotation Generator v2.0</p>
-                                </div>
-                                <button onClick={handlePrint} className="bg-white text-black px-6 py-2 rounded-full font-bold text-sm">列印 / 另存 PDF</button>
-                            </header>
+                <div className="min-h-screen">
+                    {/* UI View */}
+                    <div className="no-print max-w-5xl mx-auto px-6 py-8 space-y-8">
+                        <header className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center text-white font-bold text-xl">R</div>
+                                <h1 className="text-xl font-bold tracking-tight">芮斯特報價系統</h1>
+                            </div>
+                            <button onClick={() => window.print()} className="bg-black text-white px-6 py-2 rounded-full font-bold text-sm flex items-center gap-2">
+                                <Printer size={16} /> 列印 / 另存 PDF
+                            </button>
+                        </header>
 
-                            <section className="bg-white/5 p-8 rounded-3xl border border-white/10">
-                                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">選擇客戶 Client</label>
-                                <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-lg font-bold outline-none focus:border-white/40 transition-colors">
-                                    {Object.entries(CLIENTS).map(([id, c]) => <option key={id} value={id}>{c.name}</option>)}
-                                </select>
-                            </section>
-
-                            <section className="space-y-4">
-                                {items.map((item, idx) => (
-                                    <div key={item.id} className="bg-white/5 p-6 rounded-3xl border border-white/10 flex flex-wrap gap-4 items-end">
-                                        <div className="flex-1 min-w-[200px]">
-                                            <label className="block text-[10px] font-bold text-white/40 mb-2">品項 Product</label>
-                                            <select value={item.productId} onChange={(e) => {
-                                                const newItems = [...items];
-                                                newItems[idx].productId = e.target.value;
-                                                newItems[idx].flavor = FLAVORS[e.target.value][0];
-                                                setItems(newItems);
-                                            }} className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm font-bold">
-                                                {PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 space-y-6">
+                                <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                    <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">客戶資訊</h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 mb-1">選擇客戶</label>
+                                            <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none">
+                                                {CLIENTS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
                                         </div>
-                                        <div className="w-40">
-                                            <label className="block text-[10px] font-bold text-white/40 mb-2">口味 Flavor</label>
-                                            <select value={item.flavor} onChange={(e) => {
-                                                const newItems = [...items];
-                                                newItems[idx].flavor = e.target.value;
-                                                setItems(newItems);
-                                            }} className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm font-bold">
-                                                {FLAVORS[item.productId].map(f => <option key={f} value={f}>{f}</option>)}
-                                            </select>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 mb-1">日期</label>
+                                            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none" />
                                         </div>
-                                        <div className="w-24">
-                                            <label className="block text-[10px] font-bold text-white/40 mb-2">數量 Qty</label>
-                                            <input type="number" value={item.quantity} onChange={(e) => {
-                                                const newItems = [...items];
-                                                newItems[idx].quantity = parseInt(e.target.value) || 0;
-                                                setItems(newItems);
-                                            }} className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm font-bold" />
-                                        </div>
-                                        <button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl">刪除</button>
                                     </div>
-                                ))}
-                                <button onClick={() => setItems([...items, { id: Math.random().toString(), productId: '40g', flavor: '經典原味', quantity: 250 }])} className="w-full py-4 border-2 border-dashed border-white/10 rounded-3xl text-white/40 font-bold hover:border-white/40 hover:text-white transition-all">+ 新增品項</button>
-                            </section>
-                        </div>
+                                </section>
 
-                        <div className="space-y-6">
-                            <div className="bg-white text-black p-8 rounded-3xl">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 opacity-40">總計摘要 Summary</h3>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between text-sm"><span>未稅小計</span><span className="font-bold">NT$ {subtotal.toLocaleString()}</span></div>
-                                    <div className="flex justify-between text-sm"><span>營業稅 (5%)</span><span className="font-bold">NT$ {tax.toLocaleString()}</span></div>
-                                    <div className="pt-4 border-t border-black/10 flex justify-between items-end">
-                                        <span className="text-xs font-bold">總計 (含稅)</span>
-                                        <span className="text-3xl font-black tracking-tighter">NT$ {total.toLocaleString()}</span>
+                                <section className="space-y-4">
+                                    {items.map((item, idx) => (
+                                        <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-12 gap-4 items-end">
+                                            <div className="col-span-5">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">品項</label>
+                                                <select value={item.productId} onChange={(e) => updateItem(item.id, { productId: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-bold">
+                                                    {PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="col-span-4">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">口味</label>
+                                                <select value={item.flavor} onChange={(e) => updateItem(item.id, { flavor: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-bold">
+                                                    {FLAVORS[item.productId].map(f => <option key={f} value={f}>{f}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">數量</label>
+                                                <input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, { quantity: parseInt(e.target.value) || 0 })} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-bold" />
+                                            </div>
+                                            <div className="col-span-1 flex justify-center">
+                                                <button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="text-gray-300 hover:text-red-500"><Trash2 size={18} /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button onClick={() => setItems([...items, { id: Math.random().toString(), productId: '40g', flavor: FLAVORS['40g'][0], quantity: 250 }])} className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 transition-all">+ 新增品項</button>
+                                </section>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="bg-black text-white p-8 rounded-3xl shadow-xl">
+                                    <h2 className="text-xs font-bold uppercase tracking-widest opacity-50 mb-6">總計摘要</h2>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between text-sm opacity-60"><span>未稅小計</span><span>${(subtotal - tax).toLocaleString()}</span></div>
+                                        <div className="flex justify-between text-sm opacity-60"><span>稅金 (5%)</span><span>${tax.toLocaleString()}</span></div>
+                                        <div className="pt-4 border-t border-white/10 flex justify-between items-end">
+                                            <span className="text-xs font-bold uppercase">總計金額</span>
+                                            <span className="text-3xl font-bold font-mono tracking-tighter">${total.toLocaleString()}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Print View (Visible on Print) */}
-                    <div className="hidden print:block bg-white text-black p-12 min-h-screen">
-                        <div className="flex justify-between items-start border-b-4 border-black pb-8">
+                    {/* Print View */}
+                    <div className="hidden print:block bg-white p-12 text-black">
+                        <div className="flex justify-between items-start mb-12">
                             <div>
-                                <h1 className="text-5xl font-black tracking-tighter">RESTSOL</h1>
-                                <p className="text-sm font-bold tracking-[0.2em] mt-2">芮斯特有限公司</p>
+                                <h1 className="text-4xl font-black tracking-tighter">專案報價單</h1>
+                                <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase">QUOTE NO: {quoteNo}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase">DATE: {date}</p>
                             </div>
                             <div className="text-right">
-                                <h2 className="text-3xl font-black tracking-tight">QUOTATION</h2>
-                                <p className="text-sm font-bold mt-1">報價單</p>
+                                <p className="text-[10px] font-black tracking-widest text-gray-300">RESTSOL PARTNER PORTAL</p>
+                            </div>
+                        </div>
+                        <div className="h-px bg-black mb-8" />
+                        <div className="grid grid-cols-2 gap-16 mb-16">
+                            <div className="text-[13px]">
+                                <h3 className="font-black border-b border-black pb-1 mb-3">客戶資訊 CLIENT</h3>
+                                <p><b>名稱:</b> {selectedClient.name}</p>
+                                <p><b>統編:</b> {selectedClient.taxId}</p>
+                                <p><b>地址:</b> {selectedClient.addr}</p>
+                            </div>
+                            <div className="text-[13px]">
+                                <h3 className="font-black border-b border-black pb-1 mb-3">供應商 SUPPLIER</h3>
+                                <p><b>公司:</b> {SUPPLIER.name}</p>
+                                <p><b>電話:</b> {SUPPLIER.tel}</p>
+                                <p><b>統編:</b> {SUPPLIER.id}</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-12 my-12">
-                            <div className="space-y-4">
-                                <h3 className="text-[10px] font-black bg-black text-white px-2 py-1 inline-block">客戶資訊 CLIENT</h3>
-                                <div className="space-y-1">
-                                    <p className="text-lg font-black">{CLIENTS[clientId].name}</p>
-                                    <p className="text-xs text-gray-500">{CLIENTS[clientId].address}</p>
-                                    <p className="text-xs text-gray-500">統編：{CLIENTS[clientId].taxId}</p>
-                                </div>
-                            </div>
-                            <div className="text-right space-y-2">
-                                <p className="text-xs"><span className="font-bold">報價單號：</span>{quotationId}</p>
-                                <p className="text-xs"><span className="font-bold">報價日期：</span>{date}</p>
-                            </div>
-                        </div>
-
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse mb-12">
                             <thead>
                                 <tr className="bg-black text-white">
-                                    <th className="py-3 px-4 text-[10px] font-bold whitespace-nowrap">項目 DESCRIPTION</th>
-                                    <th className="py-3 px-4 text-[10px] font-bold whitespace-nowrap">規格 SPEC</th>
-                                    <th className="py-3 px-4 text-[10px] font-bold text-center whitespace-nowrap">數量 QTY</th>
-                                    <th className="py-3 px-4 text-[10px] font-bold text-right whitespace-nowrap">單價 PRICE</th>
-                                    <th className="py-3 px-4 text-[10px] font-bold text-right whitespace-nowrap">小計 AMOUNT</th>
+                                    <th className="py-3 px-4 text-[10px] whitespace-nowrap">項目 DESCRIPTION</th>
+                                    <th className="py-3 px-4 text-[10px] whitespace-nowrap">規格 SPEC</th>
+                                    <th className="py-3 px-4 text-[10px] text-center whitespace-nowrap">數量 QTY</th>
+                                    <th className="py-3 px-4 text-[10px] text-right whitespace-nowrap">單價 PRICE</th>
+                                    <th className="py-3 px-4 text-[10px] text-right whitespace-nowrap">小計 AMOUNT</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -196,7 +245,7 @@
                                             <td className="py-5 px-4">
                                                 <p className="text-sm font-bold whitespace-nowrap">{p.name}</p>
                                                 <div className="mt-2 flex items-center gap-2">
-                                                    <span className="text-[9px] font-black bg-black text-white px-1 py-0.5 rounded uppercase">FLAVOR</span>
+                                                    <span className="text-[9px] font-black bg-black text-white px-1 py-0.5 rounded">FLAVOR</span>
                                                     <span className="text-[13px] font-black whitespace-nowrap">{item.flavor}</span>
                                                 </div>
                                             </td>
@@ -210,25 +259,17 @@
                             </tbody>
                         </table>
 
-                        <div className="mt-12 flex justify-end">
-                            <div className="w-64 space-y-3">
-                                <div className="flex justify-between text-xs"><span>未稅小計 Subtotal</span><span>NT$ {subtotal.toLocaleString()}</span></div>
-                                <div className="flex justify-between text-xs"><span>營業稅 Tax (5%)</span><span>NT$ {tax.toLocaleString()}</span></div>
-                                <div className="pt-3 border-t-2 border-black flex justify-between items-end">
-                                    <span className="text-sm font-black">總計 TOTAL</span>
-                                    <span className="text-2xl font-black whitespace-nowrap">NT$ {total.toLocaleString()}</span>
-                                </div>
+                        <div className="flex justify-end mb-24">
+                            <div className="w-64 space-y-2 text-sm">
+                                <div className="flex justify-between"><span>小計</span><span>NT$ {(subtotal - tax).toLocaleString()}</span></div>
+                                <div className="flex justify-between"><span>稅金 (5%)</span><span>NT$ {tax.toLocaleString()}</span></div>
+                                <div className="pt-2 border-t-2 border-black flex justify-between font-black"><span>總計</span><span className="text-xl">NT$ {total.toLocaleString()}</span></div>
                             </div>
                         </div>
 
-                        <div className="mt-24 grid grid-cols-2 gap-12">
-                            <div className="border-t border-gray-200 pt-4">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">芮斯特有限公司 簽章</p>
-                                <div className="h-20"></div>
-                            </div>
-                            <div className="border-t border-gray-200 pt-4">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">客戶確認 簽章</p>
-                            </div>
+                        <div className="grid grid-cols-2 gap-16 text-center">
+                            <div><div className="h-px bg-black mb-2" /><p className="text-[10px] font-bold text-gray-400">客戶簽章</p></div>
+                            <div><div className="h-px bg-black mb-2" /><p className="text-[10px] font-bold text-gray-400">芮斯特簽章</p></div>
                         </div>
                     </div>
                 </div>
@@ -237,6 +278,9 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
