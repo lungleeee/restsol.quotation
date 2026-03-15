@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>芮斯特報價單生成系統 - Restsol Quotation System</title>
+    <!-- Tailwind CSS 3 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; -webkit-print-color-adjust: exact; }
+            @page { margin: 0; size: auto; }
+            .print-area { display: block !important; }
+        }
+        .whitespace-nowrap { white-space: nowrap; }
+    </style>
+</head>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        // --- Data Definitions ---
+        const CLIENTS = {
+            'cube': { name: "三次方企業社", address: "台中市西屯區福雅路476-2號", phone: "0912-345678", taxId: "90456789" },
+            'strong': { name: "史狀沙斯企業社", address: "台北市大安區忠孝東路四段1號", phone: "02-2771-2345", taxId: "88776655" }
+        };
+
+        const PRODUCTS = [
+            { id: '40g', name: "Restsol Protein Vegan 睿獸大豆分離蛋白 40g", spec: "單包入(250一箱)", basePrice: 29 },
+            { id: '1kg', name: "Restsol Protein Vegan 睿獸大豆分離蛋白 1kg", spec: "15入一箱", basePrice: 550 },
+            { id: 'cube', name: "Protein Cube 睿獸巧克高蛋白方派", spec: "20g/8入/一盒", basePrice: 180 }
+        ];
+
+        const FLAVORS = {
+            '40g': ["經典原味", "濃郁可可", "靜岡抹茶", "宇治焙茶"],
+            '1kg': ["經典原味", "濃郁可可", "靜岡抹茶", "宇治焙茶"],
+            'cube': ["黑巧克力", "海鹽焦糖"]
+        };
+
+        const calculateItemPrice = (clientId, productId, flavor) => {
+            const product = PRODUCTS.find(p => p.id === productId);
+            let price = product.basePrice;
+            if (productId === '40g') {
+                if (flavor === '靜岡抹茶') price += (clientId === 'cube' ? 3 : 2);
+                if (flavor === '宇治焙茶') price += 5;
+            } else if (productId === '1kg') {
+                if (flavor === '靜岡抹茶') price += (clientId === 'cube' ? 30 : 20);
+                if (flavor === '宇治焙茶') price += (clientId === 'cube' ? 50 : 40);
+            }
+            return price;
+        };
+
+        // --- Components ---
+        function App() {
+            const [clientId, setClientId] = useState('cube');
+            const [items, setItems] = useState([{ id: '1', productId: '40g', flavor: '經典原味', quantity: 250 }]);
+            const [quotationId] = useState(`QT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`);
+            const [date] = useState(new Date().toLocaleDateString('zh-TW'));
+
+            const total = useMemo(() => items.reduce((sum, item) => sum + (calculateItemPrice(clientId, item.productId, item.flavor) * item.quantity), 0), [items, clientId]);
+            const tax = Math.round(total / 1.05 * 0.05);
+            const subtotal = total - tax;
+
+            const handlePrint = () => window.print();
+
+            return (
+                <div className="max-w-6xl mx-auto p-4 md:p-8">
+                    {/* Edit View (Hidden on Print) */}
+                    <div className="no-print grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-6">
+                            <header className="flex justify-between items-center bg-white/5 p-6 rounded-3xl border border-white/10">
+                                <div>
+                                    <h1 class="text-2xl font-black tracking-tighter">RESTSOL <span class="text-white/40">SYSTEM</span></h1>
+                                    <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Quotation Generator v2.0</p>
+                                </div>
+                                <button onClick={handlePrint} className="bg-white text-black px-6 py-2 rounded-full font-bold text-sm">列印 / 另存 PDF</button>
+                            </header>
+
+                            <section className="bg-white/5 p-8 rounded-3xl border border-white/10">
+                                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">選擇客戶 Client</label>
+                                <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-lg font-bold outline-none focus:border-white/40 transition-colors">
+                                    {Object.entries(CLIENTS).map(([id, c]) => <option key={id} value={id}>{c.name}</option>)}
+                                </select>
+                            </section>
+
+                            <section className="space-y-4">
+                                {items.map((item, idx) => (
+                                    <div key={item.id} className="bg-white/5 p-6 rounded-3xl border border-white/10 flex flex-wrap gap-4 items-end">
+                                        <div className="flex-1 min-w-[200px]">
+                                            <label className="block text-[10px] font-bold text-white/40 mb-2">品項 Product</label>
+                                            <select value={item.productId} onChange={(e) => {
+                                                const newItems = [...items];
+                                                newItems[idx].productId = e.target.value;
+                                                newItems[idx].flavor = FLAVORS[e.target.value][0];
+                                                setItems(newItems);
+                                            }} className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm font-bold">
+                                                {PRODUCTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="w-40">
+                                            <label className="block text-[10px] font-bold text-white/40 mb-2">口味 Flavor</label>
+                                            <select value={item.flavor} onChange={(e) => {
+                                                const newItems = [...items];
+                                                newItems[idx].flavor = e.target.value;
+                                                setItems(newItems);
+                                            }} className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm font-bold">
+                                                {FLAVORS[item.productId].map(f => <option key={f} value={f}>{f}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="w-24">
+                                            <label className="block text-[10px] font-bold text-white/40 mb-2">數量 Qty</label>
+                                            <input type="number" value={item.quantity} onChange={(e) => {
+                                                const newItems = [...items];
+                                                newItems[idx].quantity = parseInt(e.target.value) || 0;
+                                                setItems(newItems);
+                                            }} className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm font-bold" />
+                                        </div>
+                                        <button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl">刪除</button>
+                                    </div>
+                                ))}
+                                <button onClick={() => setItems([...items, { id: Math.random().toString(), productId: '40g', flavor: '經典原味', quantity: 250 }])} className="w-full py-4 border-2 border-dashed border-white/10 rounded-3xl text-white/40 font-bold hover:border-white/40 hover:text-white transition-all">+ 新增品項</button>
+                            </section>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="bg-white text-black p-8 rounded-3xl">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 opacity-40">總計摘要 Summary</h3>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between text-sm"><span>未稅小計</span><span className="font-bold">NT$ {subtotal.toLocaleString()}</span></div>
+                                    <div className="flex justify-between text-sm"><span>營業稅 (5%)</span><span className="font-bold">NT$ {tax.toLocaleString()}</span></div>
+                                    <div className="pt-4 border-t border-black/10 flex justify-between items-end">
+                                        <span className="text-xs font-bold">總計 (含稅)</span>
+                                        <span className="text-3xl font-black tracking-tighter">NT$ {total.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Print View (Visible on Print) */}
+                    <div className="hidden print:block bg-white text-black p-12 min-h-screen">
+                        <div className="flex justify-between items-start border-b-4 border-black pb-8">
+                            <div>
+                                <h1 className="text-5xl font-black tracking-tighter">RESTSOL</h1>
+                                <p className="text-sm font-bold tracking-[0.2em] mt-2">芮斯特有限公司</p>
+                            </div>
+                            <div className="text-right">
+                                <h2 className="text-3xl font-black tracking-tight">QUOTATION</h2>
+                                <p className="text-sm font-bold mt-1">報價單</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-12 my-12">
+                            <div className="space-y-4">
+                                <h3 className="text-[10px] font-black bg-black text-white px-2 py-1 inline-block">客戶資訊 CLIENT</h3>
+                                <div className="space-y-1">
+                                    <p className="text-lg font-black">{CLIENTS[clientId].name}</p>
+                                    <p className="text-xs text-gray-500">{CLIENTS[clientId].address}</p>
+                                    <p className="text-xs text-gray-500">統編：{CLIENTS[clientId].taxId}</p>
+                                </div>
+                            </div>
+                            <div className="text-right space-y-2">
+                                <p className="text-xs"><span className="font-bold">報價單號：</span>{quotationId}</p>
+                                <p className="text-xs"><span className="font-bold">報價日期：</span>{date}</p>
+                            </div>
+                        </div>
+
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-black text-white">
+                                    <th className="py-3 px-4 text-[10px] font-bold whitespace-nowrap">項目 DESCRIPTION</th>
+                                    <th className="py-3 px-4 text-[10px] font-bold whitespace-nowrap">規格 SPEC</th>
+                                    <th className="py-3 px-4 text-[10px] font-bold text-center whitespace-nowrap">數量 QTY</th>
+                                    <th className="py-3 px-4 text-[10px] font-bold text-right whitespace-nowrap">單價 PRICE</th>
+                                    <th className="py-3 px-4 text-[10px] font-bold text-right whitespace-nowrap">小計 AMOUNT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map(item => {
+                                    const p = PRODUCTS.find(x => x.id === item.productId);
+                                    const price = calculateItemPrice(clientId, item.productId, item.flavor);
+                                    return (
+                                        <tr key={item.id} className="border-b border-gray-100">
+                                            <td className="py-5 px-4">
+                                                <p className="text-sm font-bold whitespace-nowrap">{p.name}</p>
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <span className="text-[9px] font-black bg-black text-white px-1 py-0.5 rounded uppercase">FLAVOR</span>
+                                                    <span className="text-[13px] font-black whitespace-nowrap">{item.flavor}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-5 px-4 text-[11px] whitespace-nowrap">{p.spec}</td>
+                                            <td className="py-5 px-4 text-sm font-bold text-center">{item.quantity}</td>
+                                            <td className="py-5 px-4 text-sm text-right whitespace-nowrap">NT$ {price.toLocaleString()}</td>
+                                            <td className="py-5 px-4 text-sm font-bold text-right whitespace-nowrap">NT$ {(price * item.quantity).toLocaleString()}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+
+                        <div className="mt-12 flex justify-end">
+                            <div className="w-64 space-y-3">
+                                <div className="flex justify-between text-xs"><span>未稅小計 Subtotal</span><span>NT$ {subtotal.toLocaleString()}</span></div>
+                                <div className="flex justify-between text-xs"><span>營業稅 Tax (5%)</span><span>NT$ {tax.toLocaleString()}</span></div>
+                                <div className="pt-3 border-t-2 border-black flex justify-between items-end">
+                                    <span className="text-sm font-black">總計 TOTAL</span>
+                                    <span className="text-2xl font-black whitespace-nowrap">NT$ {total.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-24 grid grid-cols-2 gap-12">
+                            <div className="border-t border-gray-200 pt-4">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">芮斯特有限公司 簽章</p>
+                                <div className="h-20"></div>
+                            </div>
+                            <div className="border-t border-gray-200 pt-4">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">客戶確認 簽章</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
