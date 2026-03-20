@@ -4,33 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>芮斯特報價系統</title>
-    <!-- 載入 React 核心 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 載入 Babel (讓瀏覽器看得懂 JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 載入 Lucide 圖示庫 -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @media print {
             .print\:hidden { display: none !important; }
             .print\:block { display: block !important; }
             body { background: white !important; padding: 0 !important; }
-            .no-print-shadow { shadow: none !important; border: none !important; }
+            .no-print-shadow { box-shadow: none !important; border: none !important; }
         }
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             opacity: 1;
         }
+        /* 修正 GitHub Pages 載入時的字體 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     </style>
 </head>
 <body class="bg-[#F8F9FA]">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useMemo, useEffect, useCallback } = React;
+        const { useState, useMemo, useEffect } = React;
 
         // --- 常數設定 ---
         const SUPPLIER = {
@@ -78,15 +76,13 @@
             'spoon': ["標準"]
         };
 
-        // --- 小圖示組件 (使用 Lucide) ---
         const Icon = ({ name, size = 16, className = "" }) => {
             useEffect(() => {
-                lucide.createIcons();
-            }, []);
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
             return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
         };
 
-        // --- 價格計算邏輯 ---
         const calculateItemPrice = (clientId, productId, flavor) => {
             const product = PRODUCTS.find(p => p.id === productId);
             if (!product) return 0;
@@ -112,7 +108,6 @@
             return price;
         };
 
-        // --- 主程式 ---
         function App() {
             const getTaipeiDate = () => {
                 const now = new Date();
@@ -172,12 +167,11 @@
             };
 
             useEffect(() => {
-                lucide.createIcons();
+                if (window.lucide) window.lucide.createIcons();
             }, [items, clientId]);
 
             return (
                 <div className="min-h-screen pb-20">
-                    {/* 編輯介面 (列印時隱藏) */}
                     <header className="bg-white border-b border-gray-200 sticky top-0 z-10 print:hidden">
                         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
                             <div className="flex items-center gap-3">
@@ -193,7 +187,6 @@
                     <main className="max-w-5xl mx-auto px-6 py-8 print:hidden">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2 space-y-8">
-                                {/* 客戶選擇 */}
                                 <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                     <div className="flex items-center gap-2 mb-6 text-gray-500">
                                         <Icon name="building-2" size={18} />
@@ -213,7 +206,6 @@
                                     </div>
                                 </section>
 
-                                {/* 品項編輯 */}
                                 <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                     <div className="flex justify-between items-center mb-6">
                                         <div className="flex items-center gap-2 text-gray-500">
@@ -255,12 +247,11 @@
                                 </section>
                             </div>
 
-                            {/* 右側總計 */}
                             <div className="space-y-6">
                                 <section className="bg-black text-white p-8 rounded-3xl shadow-xl sticky top-24">
                                     <h2 className="text-xs font-bold uppercase tracking-[0.2em] opacity-50 mb-8">總計摘要</h2>
                                     <div className="space-y-4 mb-8">
-                                        <div className="flex justify-between text-sm"><span className="opacity-60">小計 (未稅)</span><span>${(subtotal - tax).toLocaleString()}</span></div>
+                                        <div className="flex justify-between text-sm"><span className="opacity-60">小計 (未稅)</span><span>${(subtotal).toLocaleString()}</span></div>
                                         <div className="flex justify-between text-sm"><span className="opacity-60">稅金 (5% 內含)</span><span>${tax.toLocaleString()}</span></div>
                                         <div className="h-px bg-white/10 my-4"></div>
                                         <div className="flex justify-between items-end">
@@ -276,7 +267,6 @@
                         </div>
                     </main>
 
-                    {/* 列印視圖 (平常隱藏) */}
                     <div className="hidden print:block bg-white min-h-screen p-12 text-[#1A1A1A]">
                         <div className="flex justify-between items-start mb-12">
                             <div>
@@ -302,7 +292,7 @@
                                     <span className="text-gray-400">公司:</span><span className="col-span-2 font-bold">{SUPPLIER.name}</span>
                                     <span className="text-gray-400">聯絡人:</span><span className="col-span-2">{SUPPLIER.rep}</span>
                                     <span className="text-gray-400">統編:</span><span className="col-span-2">{SUPPLIER.id}</span>
-                                    <span className="text-gray-400">地址:</span><span className="col-span-2">{SUPPLIER.addr}</span>
+                                    <span className="text-gray-400">地址:</span><span className="col-span-2 text-[11px] leading-tight">{SUPPLIER.addr}</span>
                                 </div>
                             </div>
                         </div>
@@ -345,8 +335,8 @@
                                 </div>
                             </div>
                             <div className="space-y-3">
-                                <div className="flex justify-between text-sm"><span>小計 SUBTOTAL</span><span className="font-bold">${(subtotal - tax).toLocaleString()}</span></div>
-                                <div className="flex justify-between text-sm"><span>稅金 TAX (5%)</span><span className="font-bold">${tax.toLocaleString()}</span></div>
+                                <div className="flex justify-between text-sm"><span>小計 SUBTOTAL (未稅)</span><span className="font-bold">${subtotal.toLocaleString()}</span></div>
+                                <div className="flex justify-between text-sm"><span>稅金 TAX (5% 內含)</span><span className="font-bold">${tax.toLocaleString()}</span></div>
                                 <div className="bg-black text-white p-6 rounded-2xl flex justify-between items-center">
                                     <span className="text-xs font-black">總計 GRAND TOTAL</span>
                                     <span className="text-2xl font-black">NT$ {total.toLocaleString()}</span>
