@@ -90,19 +90,19 @@
 
             if (clientId === 'triple') {
                 if (productId === '40g') {
-                    if (flavor.includes('抹茶')) price += 3;
-                    if (flavor.includes('焙茶')) price += 5;
+                    if (flavor.includes('抹茶')) price += 5;
+                    if (flavor.includes('焙茶')) price += 3;
                 } else if (productId === '1kg') {
-                    if (flavor.includes('抹茶')) price += 30;
-                    if (flavor.includes('焙茶')) price += 50;
+                    if (flavor.includes('抹茶')) price += 50;
+                    if (flavor.includes('焙茶')) price += 30;
                 }
             } else if (clientId === 'strong') {
                 if (productId === '40g') {
-                    if (flavor.includes('抹茶')) price += 2;
-                    if (flavor.includes('焙茶')) price += 5;
+                    if (flavor.includes('抹茶')) price += 4;
+                    if (flavor.includes('焙茶')) price += 2;
                 } else if (productId === '1kg') {
-                    if (flavor.includes('抹茶')) price += 20;
-                    if (flavor.includes('焙茶')) price += 40;
+                    if (flavor.includes('抹茶')) price += 40;
+                    if (flavor.includes('焙茶')) price += 20;
                 }
             }
             return price;
@@ -238,7 +238,7 @@
                                                 <div className="md:col-span-2 flex flex-col justify-end items-end">
                                                     <div className="flex items-center gap-3">
                                                         <span className="text-sm font-bold">${(calculateItemPrice(clientId, item.productId, item.flavor) * item.quantity).toLocaleString()}</span>
-                                                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-500"><Icon name="trash-2" size={16} /></button>
+                                                        <button onClick={() => removeItem(id)} className="text-gray-300 hover:text-red-500"><Icon name="trash-2" size={16} /></button>
                                                     </div>
                                                 </div>
                                             </div>
