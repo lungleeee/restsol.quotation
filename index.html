@@ -20,7 +20,6 @@
         input[type="number"]::-webkit-outer-spin-button {
             opacity: 1;
         }
-        /* 修正 GitHub Pages 載入時的字體 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     </style>
 </head>
@@ -55,9 +54,9 @@
             {
                 id: "strong",
                 name: "史狀沙斯企業社",
-                tel: "05-5850189",
+                tel: "06-2423086",
                 taxId: "72404190",
-                addr: "雲林縣莿桐鄉大美村大美23-6號(彰輝不鏽鋼旁邊)",
+                addr: "台南市中華北路二段194巷59弄11號一樓",
                 contact: "史狀沙斯企業社"
             }
         ];
@@ -238,7 +237,7 @@
                                                 <div className="md:col-span-2 flex flex-col justify-end items-end">
                                                     <div className="flex items-center gap-3">
                                                         <span className="text-sm font-bold">${(calculateItemPrice(clientId, item.productId, item.flavor) * item.quantity).toLocaleString()}</span>
-                                                        <button onClick={() => removeItem(id)} className="text-gray-300 hover:text-red-500"><Icon name="trash-2" size={16} /></button>
+                                                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-500"><Icon name="trash-2" size={16} /></button>
                                                     </div>
                                                 </div>
                                             </div>
